@@ -64,7 +64,7 @@
             android:src="@mipmap/play_button"
             />
         <ImageView
-            android:id="@+id/bext_button"
+            android:id="@+id/next_button"
             style="@style/MediaButton"
             android:src="@mipmap/next_button"/>
     </LinearLayout>

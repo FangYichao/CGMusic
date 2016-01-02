@@ -76,6 +76,7 @@ public class MusicListViewAdapter extends BaseAdapter {
         int section = getSectionForPosition(position);
         if (position == getPositionForSection(section)) {
             viewHolde.catalog.setVisibility(View.VISIBLE);
+
             viewHolde.ziMu.setVisibility(View.VISIBLE);
             viewHolde.catalog.setText(medias.get(position).getKey());
         } else {
