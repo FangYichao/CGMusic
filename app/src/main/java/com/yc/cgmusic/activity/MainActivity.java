@@ -8,6 +8,7 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.support.v4.view.ViewPager;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
@@ -42,6 +43,7 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
     private List<View> views;
     private List<Media> medias;
     private Media media;
+
     /**
      * view1中的音乐列表
      */
@@ -49,6 +51,7 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
     private ImageView lastButton;
     private ImageView playButton;
     private ImageView nextButton;
+    private ImageView sou;
     private TextView playTitle;
     private TextView playSinger;
     private TextView musicCurrentTime;
@@ -69,6 +72,10 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
 
 
     private int currentPosition;
+    /**
+     * 第一次按back时间；
+     */
+    private long time = 0;
 
 
 
@@ -79,6 +86,13 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
 
         init();
 
+        sou.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onSearchRequested();
+            }
+        });
+
     }
 
     /**
@@ -88,6 +102,7 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
         lastButton = (ImageView)findViewById(R.id.last_button);
         playButton = (ImageView)findViewById(R.id.play_button);
         nextButton = (ImageView)findViewById(R.id.next_button);
+        sou = (ImageView)findViewById(R.id.music_search);
 
         lastButton.setOnClickListener(this);
         playButton.setOnClickListener(this);
@@ -346,5 +361,43 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
             secondText = "0"+time+"";
         }
         return minText + ":" + secondText;
+    }
+    /**
+     * 双击返回桌面方法和菜单监控
+     */
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            if ((System.currentTimeMillis() - time > 1000)) {
+                Toast.makeText(this, "再按一次返回桌面", Toast.LENGTH_SHORT).show();
+                time = System.currentTimeMillis();
+            } else {
+                Intent intent = new Intent(Intent.ACTION_MAIN);
+                intent.addCategory(Intent.CATEGORY_HOME);
+
+                startActivity(intent);
+            }
+            return true;
+        }
+//        else if (keyCode == KeyEvent.KEYCODE_MENU) {
+//            new ActionSheetDialog(MainActivity.this).builder().setTitle("菜单").setCancelable(false)
+//                    .setCanceledOnTouchOutside(false)
+//                    .addSheetItem("退出应用", SheetItemColor.Red, new OnSheetItemClickListener() {
+//                        @Override
+//                        public void onClick(int which) {
+//                            // MusicService.isPlay_No = false;
+//                            Intent intent = new Intent(MainActivity.this, MusicService.class);
+//                            stopService(intent);
+//                            MyApplication.getInstance().killActivity();
+//                            MainActivity.this.finish();
+//                        }
+//                    }).show();
+//
+//            return true;
+//        }
+        else {
+            return super.onKeyDown(keyCode, event);
+        }
+
     }
 }
