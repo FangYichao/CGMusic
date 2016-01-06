@@ -44,7 +44,11 @@ public class LoadMusicFromSD {
                     //将汉字转换成拼音
                     String key = characterParser.getSelling(name);
                     String sortString = key.substring(0, 1).toUpperCase();
-                    m.setKey(sortString.toUpperCase());
+                    if (sortString.matches("[A-Z]")) {
+                        m.setKey(sortString.toUpperCase());
+                    } else {
+                        m.setKey("#");
+                    }
                     mediaList.add(m);
                 }
             }

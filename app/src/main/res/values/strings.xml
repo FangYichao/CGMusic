@@ -1,6 +1,5 @@
 <resources>
-    <string name="app_name">CGMusic</string>
+    <string name="app_name">超歌播放器</string>
 
     <string name="search_hint">请输入歌名</string>
-    <string name="title_activity_main">MainActivity</string>
 </resources>

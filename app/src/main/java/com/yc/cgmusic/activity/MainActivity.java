@@ -5,12 +5,20 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.support.v4.view.ViewPager;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.view.animation.LinearInterpolator;
 import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -28,6 +36,7 @@ import com.yc.cgmusic.util.LoadMusicFromSD;
 import com.yc.cgmusic.util.LogUtil;
 import com.yc.cgmusic.util.PinyinComparator;
 import com.yc.cgmusic.util.Utils;
+import com.yc.cgmusic.view.SideBar;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -57,6 +66,10 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
     private TextView musicCurrentTime;
     private TextView musicAlwaysTime;
     private SeekBar sbMusic;
+    private ImageView iv_special;
+
+
+    private TextView dialog;
 
     private ViewPager viewPager;
     private View view1,view2;
@@ -64,6 +77,11 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
     private LayoutInflater layoutInflater;
     private IntentFilter intentFilter;
     private PinyinComparator pinyinComparator;
+
+    /**
+     * 字母索引view对象
+     */
+    private SideBar sideBarView;
 
     private MusicListViewAdapter musicListViewAdapter;
     private LoadMusicFromSD loadMusicFromSD;
@@ -146,6 +164,19 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
         view1 = layoutInflater.inflate(R.layout.list_music, null);
 
         listMusic = (ListView)view1.findViewById(R.id.list_music);
+        sideBarView = (SideBar) view1.findViewById(R.id.SideBarView);// 拿到alphaView所在的id
+        dialog = (TextView) view1.findViewById(R.id.dialog);
+        sideBarView.setTextView(dialog);
+        sideBarView.setOnTouchingLetterChangedListener(new SideBar.OnTouchingLetterChangedListener() {
+
+            @Override
+            public void onTouchingLetterChanged(String s) {
+                int position = musicListViewAdapter.getPositionForSection(s.charAt(0));
+                if (position != -1) {
+                    listMusic.setSelection(position);
+                }
+            }
+        });
         //对medias进行排序
         Collections.sort(medias,pinyinComparator);
         musicListViewAdapter = new MusicListViewAdapter(this,R.layout.list_music_item,medias);
@@ -157,6 +188,7 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
         //添加播放音乐View
         view2 = layoutInflater.inflate(R.layout.cg_play, null);
 
+        iv_special = (ImageView) view2.findViewById(R.id.infoOperating);
         playTitle = (TextView)view2.findViewById(R.id.play_title);
         playSinger = (TextView)view2.findViewById(R.id.play_singer);
         musicCurrentTime = (TextView)view2.findViewById(R.id.music_current_time);
@@ -312,10 +344,47 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
                 musicAlwaysTime.setText(timeconvert(medias.get(index).getDuration()));
                 sbMusic.setMax(medias.get(index).getDuration());
 
+                //获取图片
+                int album_id = medias.get(index).getAlbum_id();
+
+                LogUtil.v("TAG", "album_id有没有:" + album_id + "");
+
+                // 再通过资源id拿到专辑的实际路径
+                String albumArt = getAlbumArt(album_id);
+                LogUtil.v("TAG", "专辑实际路径有没有:" + albumArt);
+
+                // 如果专辑路径是空，就设置默认图片
+                if (albumArt == null) {
+                    iv_special.setImageResource(R.mipmap.fengmian);
+                } else {
+                    // 用BitmapFactory.decodeFile拿到具体位图
+
+                    Bitmap btm = BitmapFactory.decodeFile(albumArt);
+                    LogUtil.v("TAG", "bm有没有:" + btm);
+                    if (btm != null) {
+                        // 设置图片格式
+                        BitmapDrawable bmpDraw = new BitmapDrawable(btm);
+                        LogUtil.v("TAG", "bmpDraw有没有:" + bmpDraw);
+                        // 设置专辑图片
+                        iv_special.setImageDrawable(bmpDraw);
+                    } else {
+                        iv_special.setImageResource(R.mipmap.fengmian);
+                    }
+
+                }
+                // 当服务开始播放音乐后，将专辑图片添加旋转动画效果
+                Animation operatingAnim = AnimationUtils.loadAnimation(MainActivity.this, R.anim.tip);
+                LinearInterpolator lin = new LinearInterpolator();
+                operatingAnim.setInterpolator(lin);
+
+                if (operatingAnim != null) {
+                    iv_special.startAnimation(operatingAnim);
+                }
+
             }else if (MyConstant.ACTION_SERVICR_PUASE.equals(intent.getAction())){
                 //收到服务暂停播放的广播
                 playButton.setImageResource(R.mipmap.play_button);
-
+                iv_special.clearAnimation();
 
             }else if (MyConstant.ACTION_MUSIC_PLAN.equals(intent.getAction())){
                 //收到服务发送的播放进度的广播
@@ -336,9 +405,24 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
                 flag = !flag;
 
             }
-
-
-
+        }
+        /*********************************************************
+         *
+         * 获取专辑图片实际地址方法
+         */
+        private String getAlbumArt(int album_id) {
+            String mUriAlbums = "content://media/external/audio/albums";
+            String[] projection = new String[] { "album_art" };
+            Cursor cur = MainActivity.this.getContentResolver()
+                    .query(Uri.parse(mUriAlbums + "/" + Integer.toString(album_id)), projection, null, null, null);
+            String album_art = null;
+            if (cur.getCount() > 0 && cur.getColumnCount() > 0) {
+                cur.moveToNext();
+                album_art = cur.getString(0);
+            }
+            cur.close();
+            cur = null;
+            return album_art;
         }
     }
     /**

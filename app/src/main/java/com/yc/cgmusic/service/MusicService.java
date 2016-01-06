@@ -9,6 +9,10 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -356,7 +360,7 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         notification.icon = R.mipmap.logo;
         notification.tickerText = "欢迎使用超歌播放器";
         remoteViews = new RemoteViews(getPackageName(), R.layout.layout_notification);
-        remoteViews.setImageViewResource(R.id.iv_art_noti, R.mipmap.logo);
+        remoteViews.setImageViewResource(R.id.iv_art_noti, R.mipmap.fengmian);
         if (medias.size() == 0 || medias == null) {
             remoteViews.setTextViewText(R.id.noti_title, "欢迎使用");
             remoteViews.setTextViewText(R.id.noti_small_title, "超歌音乐播放器");
@@ -417,12 +421,47 @@ public class MusicService extends Service implements MediaPlayer.OnPreparedListe
         } else {
 
             remoteViews.setImageViewResource(R.id.btn_noti_pause, R.mipmap.notification_play);
+        }	// 获取专辑
+        int Album = medias.get(position).getAlbum_id();
+        String img = getAlbumArt(Album);
+        Bitmap bm = null;
+        System.out.println("Album:" + img);
+        if (img != null) {
+            bm = BitmapFactory.decodeFile(img);
+            if (bm != null) {
+                // 设置图片格式
+                BitmapDrawable bmpDraw = new BitmapDrawable(bm);
+                LogUtil.v("TAG", "bmpDraw有没有:" + bmpDraw);
+                // 设置专辑图片
+                remoteViews.setImageViewBitmap(R.id.iv_art_noti, bm);
+            } else {
+                remoteViews.setImageViewResource(R.id.iv_art_noti, R.mipmap.fengmian);
+            }
+        } else {
+            remoteViews.setImageViewResource(R.id.iv_art_noti, R.mipmap.fengmian);
         }
         notificationManager.notify(NOTI_ID, notification);
     }
 
     public void cancelNoti() {
         notificationManager.cancel(NOTI_ID);
+    }	/**********************************************************************
+     *
+     * 拿到专辑图片的路径
+     */
+    private String getAlbumArt(int album_id) {
+        String mUriAlbums = "content://media/external/audio/albums";
+        String[] projection = new String[] { "album_art" };
+        Cursor cur = this.getContentResolver().query(Uri.parse(mUriAlbums + "/" + Integer.toString(album_id)),
+                projection, null, null, null);
+        String album_art = null;
+        if (cur.getCount() > 0 && cur.getColumnCount() > 0) {
+            cur.moveToNext();
+            album_art = cur.getString(0);
+        }
+        cur.close();
+        cur = null;
+        return album_art;
     }
 
 }
